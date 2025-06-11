@@ -10,6 +10,7 @@ import time
 import os
 from queue import Queue
 
+import argparse
 import random
 
 logger = logging.getLogger(__name__)
@@ -162,26 +163,32 @@ def process_pages(stock_code: str, start_page: int, end_page: int, output_file: 
         semaphore.release()  # 释放信号量
 
 
-def main(stock_code: str, total_pages: int, pages_per_thread: int):
+def main(mode:str,stock_code: str, total_pages: int, pages_per_thread: int):
     """主函数：动态分配任务给多个线程"""
-    output_file = f"{stock_code}_posts.json"
-    threads = []
-    num_threads = total_pages // pages_per_thread + (1 if total_pages % pages_per_thread != 0 else 0)
+    if mode not in ["crawl", "complete"]:
+        raise ValueError("模式必须是 'crawl' 或 'complete'")
+    if mode == "crawl":
+        output_file = f"{stock_code}_posts.json"
+        threads = []
+        num_threads = total_pages // pages_per_thread + (1 if total_pages % pages_per_thread != 0 else 0)
 
-    for i in range(num_threads):
-        # 每个线程获取一个代理 IP
-        # 计算当前线程负责的页数范围
-        start_page = i * pages_per_thread + 1
-        end_page = min((i + 1) * pages_per_thread, total_pages)
+        for i in range(num_threads):
+            # 每个线程获取一个代理 IP
+            # 计算当前线程负责的页数范围
+            start_page = i * pages_per_thread + 1
+            end_page = min((i + 1) * pages_per_thread, total_pages)
 
-        # 创建线程
-        thread = Thread(target=process_pages, args=(stock_code, start_page, end_page, output_file))
-        threads.append(thread)
-        thread.start()
+            # 创建线程
+            thread = Thread(target=process_pages, args=(stock_code, start_page, end_page, output_file))
+            threads.append(thread)
+            thread.start()
 
-    # 等待所有线程完成
-    for t in threads:
-        t.join()
+        # 等待所有线程完成
+        for t in threads:
+            t.join()
+    elif mode == "complete":
+        # 完成缺失的页面
+        complete_pages(stock_code,total_pages)
 
 def process_missing_pages(stock_code: str, pages: list, output_file: str):
     """处理缺失的多个页面"""
@@ -233,17 +240,8 @@ def crawl_missing_pages(stock_code: str, missing_pages: list, batch_size: int = 
     # 等待所有线程完成
     for t in threads:
         t.join()
-        
-if __name__ =='__main__':
-    # 测试参数
-    stock_code = "300750"   # 贵州茅台股票代码
-    total_pages = 3300       # 总页数
-    threads_count = 5       # 线程数（每个线程爬取 20 页）
 
-    # 爬取页面
-    # main(stock_code, total_pages, threads_count)
-    
-    # 爬取没有爬到的页面
+def complete_pages(stock_code:str,total_pages:int):
     try:
         with open("./log", "r", encoding='utf-8') as f:
             codes = f.read().split('\n')
@@ -269,7 +267,24 @@ if __name__ =='__main__':
         print("缺失页面爬取完成！")
     else:
         print("没有缺失页面需要爬取。")
-        print("没有缺失页面需要爬取。")
+
+
+if __name__ =='__main__':
+    parser = argparse.ArgumentParser(description="东方财富网股吧爬虫命令行工具")
+    parser.add_argument('--mode', type=str, default='crawl',
+                        help='运行模式: crawl（爬取） 或 complete（补全）')
+    parser.add_argument('--stock-code', type=str, required=True,
+                        help='股票代码，例如：300750')
+    parser.add_argument('--total-pages', type=int, default=3300,
+                        help='要爬取的总页数，默认 3300')
+    parser.add_argument('--threads-count', type=int, default=5,
+                        help='并发线程数，默认 5')
+
+    args = parser.parse_args()
+
+    main(args.mode, args.stock_code, args.total_pages, args.threads_count)
+
+    
 
 
 
