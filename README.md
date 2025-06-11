@@ -1,3 +1,4 @@
+---
 # 🕵️‍♂️ 东方财富网股吧爬虫
 
 > 本项目为一个基于 Python 的网络爬虫程序，用于从 [东方财富网股吧](https://guba.eastmoney.com/) 爬取帖子信息。该项目使用多代理IP技术绕过网站的反爬机制，确保稳定高效地获取公开数据。
@@ -47,9 +48,11 @@ pip install requests beautifulsoup4 fake-useragent
 ### 3. 运行爬虫
 
 ```bash
-python requestproxy.py
+python main.py --stock-code 300750 --total-pages 100 --threads-count 4 --mode crawl
+python main.py --stock-code 300750 --total-pages 100 --threads-count 4 --mode complete
 ```
-
+complete模式需要多次运行
+然后注释掉
 ## ⚠️ 合法性与伦理声明
 
 > **本项目仅供学习交流使用，严禁用于任何非法用途或商业用途！**
